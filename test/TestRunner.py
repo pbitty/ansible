@@ -226,23 +226,30 @@ class TestRunner(unittest.TestCase):
         assert self._run('file', ['dest=' + filedemo, 'mode=604', 'state=file'])['changed']
         assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00604
 
+        os.chmod(filedemo, 0)
         assert self._run('file', ['dest=' + filedemo, 'mode="u=rwx,g=,o=rxt"', 'state=file'])['changed']
         assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 01705
 
+        os.chmod(filedemo, 0)
         assert self._run('file', ['dest=' + filedemo, 'mode="u=rwsx,g=s,o=rxt"', 'state=file'])['changed']
         assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 07705 
 
+        os.chmod(filedemo, 0)
         assert self._run('file', ['dest=' + filedemo, 'mode="u=rwsx,g=,o=rxt"', 'state=file'])['changed']
         assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 05705 
 
+        os.chmod(filedemo, 00777)
+        assert self._run('file', ['dest=' + filedemo, 'mode="u-X"', 'state=file'])['changed']
+        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00677
+
+        os.chmod(filedemo, 00777)
         assert self._run('file', ['dest=' + filedemo, 'mode="u-x"', 'state=file'])['changed']
-        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 05605
+        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00677
 
-        assert not self._run('file', ['dest=' + filedemo, 'mode="u-X"', 'state=file'])['changed']
-        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 05605
 
+        os.chmod(filedemo, 00444)
         assert not self._run('file', ['dest=' + filedemo, 'mode="g+X"', 'state=file'])['changed']
-        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 05605
+        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00444
 
         assert self._run('file', ['dest=' + filedemo, 'mode=u=gx', 'state=file'])['failed']
 
