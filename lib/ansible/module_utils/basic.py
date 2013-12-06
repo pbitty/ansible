@@ -496,33 +496,41 @@ class AnsibleModule(object):
         
     def _get_octal_mode_from_symbolic_perms(self, path, user, perms, prev_mode):
         is_directory = stat.S_ISDIR(os.stat(path).st_mode)
-        mode = 0
-        
-        if user == 'u':
-            if 'r' in perms: mode |= stat.S_IRUSR
-            if 'w' in perms: mode |= stat.S_IWUSR
-            if 'x' in perms: mode |= stat.S_IXUSR
-            if 'X' in perms: mode |= stat.S_IXUSR if is_directory else (prev_mode & stat.S_IXUSR)
-            if 's' in perms: mode |= stat.S_ISUID
-            if 'g' in perms: mode |= (prev_mode & stat.S_IRWXG) << 3
-            if 'o' in perms: mode |= (prev_mode & stat.S_IRWXO) << 6
-        elif user == 'g':
-            if 'r' in perms: mode |= stat.S_IRGRP
-            if 'w' in perms: mode |= stat.S_IWGRP
-            if 'x' in perms: mode |= stat.S_IXGRP
-            if 'X' in perms: mode |= stat.S_IXGRP if is_directory else (prev_mode & stat.S_IXGRP)
-            if 's' in perms: mode |= stat.S_ISGID
-            if 'u' in perms: mode |= (prev_mode & stat.S_IRWXU) >> 3
-            if 'o' in perms: mode |= (prev_mode & stat.S_IRWXO) << 3
-        elif user == 'o':
-            if 'r' in perms: mode |= stat.S_IROTH
-            if 'w' in perms: mode |= stat.S_IWOTH
-            if 'x' in perms: mode |= stat.S_IXOTH
-            if 'X' in perms: mode |= stat.S_IXOTH if is_directory else (prev_mode & stat.S_IXOTH)
-            if 't' in perms: mode |= stat.S_ISVTX
-            if 'u' in perms: mode |= (prev_mode & stat.S_IRWXU) >> 6
-            if 'g' in perms: mode |= (prev_mode & stat.S_IRWXG) >> 3
-        return mode
+        has_x_permissions = (prev_mode & 00111) > 0
+	apply_X_permission = is_directory or has_x_permissions
+
+        user_perms_to_modes = {
+            'u': {
+                'r': stat.S_IRUSR,
+                'w': stat.S_IWUSR,
+                'x': stat.S_IXUSR,
+                'X': stat.S_IXUSR if apply_X_permission else 0,
+                's': stat.S_ISUID,
+                'u': prev_mode & stat.S_IRWXU,
+                'g': (prev_mode & stat.S_IRWXG) << 3,
+                'o': (prev_mode & stat.S_IRWXO) << 6 },
+            'g': {
+                'r': stat.S_IRGRP,
+                'w': stat.S_IWGRP,
+                'x': stat.S_IXGRP,
+                'X': stat.S_IXGRP if apply_X_permission else 0,
+                's': stat.S_ISGID,
+                'u': (prev_mode & stat.S_IRWXU) >> 3,
+                'g': prev_mode & stat.S_IRWXG,
+                'o': (prev_mode & stat.S_IRWXO) << 3 },
+            'o': {
+                'r': stat.S_IROTH,
+                'w': stat.S_IWOTH,
+                'x': stat.S_IXOTH,
+                'X': stat.S_IXOTH if apply_X_permission else 0,
+                't': stat.S_ISVTX,
+                'u': (prev_mode & stat.S_IRWXU) >> 6,
+                'g': (prev_mode & stat.S_IRWXG) >> 3,
+                'o': prev_mode & stat.S_IRWXO }
+        }
+
+        or_reduce = lambda mode, perm: mode | user_perms_to_modes[user][perm]
+        return reduce(or_reduce, perms, 0)
 
     def set_file_attributes_if_different(self, file_args, changed):
         # set modes owners and context as needed
