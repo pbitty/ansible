@@ -254,6 +254,10 @@ class TestRunner(unittest.TestCase):
         assert not self._run('file', ['dest=' + filedemo, 'mode="g+X"', 'state=file'])['changed']
         assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00444
 
+        os.chmod(filedemo, 00444)
+        assert not self._run('file', ['dest=' + filedemo, 'mode="u=u,g=g,o=o"', 'state=file'])['changed']
+        assert os.path.isfile(filedemo) and stat.S_IMODE(os.stat(filedemo).st_mode) == 00444
+
         assert self._run('file', ['dest=' + filedemo, 'mode=u=gx', 'state=file'])['failed']
 
         assert self._run('file', ['dest=' + filedemo, 'state=absent'])['changed']
