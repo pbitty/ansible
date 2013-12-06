@@ -497,7 +497,7 @@ class AnsibleModule(object):
     def _get_octal_mode_from_symbolic_perms(self, path, user, perms, prev_mode):
         is_directory = stat.S_ISDIR(os.stat(path).st_mode)
         has_x_permissions = (prev_mode & 00111) > 0
-	apply_X_permission = is_directory or has_x_permissions
+        apply_X_permission = is_directory or has_x_permissions
 
         user_perms_to_modes = {
             'u': {
