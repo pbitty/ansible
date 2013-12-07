@@ -486,6 +486,7 @@ class AnsibleModule(object):
             elif user == 'g': mask = stat.S_IRWXG | stat.S_ISGID
             elif user == 'o': mask = stat.S_IRWXO | stat.S_ISVTX
             
+            # mask out user's permissions from current_mode and apply new permissions   
             inverse_mask = mask ^ 07777
             new_mode = (current_mode & inverse_mask) | mode_to_apply
         elif operator == '+':
@@ -499,6 +500,8 @@ class AnsibleModule(object):
         has_x_permissions = (prev_mode & 00111) > 0
         apply_X_permission = is_directory or has_x_permissions
 
+        # Permission bits constants documented at:
+        # http://docs.python.org/2/library/stat.html#stat.S_ISUID
         user_perms_to_modes = {
             'u': {
                 'r': stat.S_IRUSR,
