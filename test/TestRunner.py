@@ -8,6 +8,7 @@ import getpass
 import ansible.runner
 import os
 import shutil
+import stat
 import time
 import tempfile
 
@@ -245,6 +246,13 @@ class TestRunner(unittest.TestCase):
         assert self._run('file', ['dest=' + filedemo, 'state=absent'])['changed']
         assert not os.path.exists(filedemo)
         assert not self._run('file', ['dest=' + filedemo, 'state=absent'])['changed']
+
+        # Ensure we follow symlinks when chaging file permissions
+        tmp_target = tempfile.mkstemp()[1]
+        os.chmod(tmp_target, 0400)
+        os.symlink(tmp_target, filedemo)
+        assert self._run('file', ['src=' + tmp_target,'path=' + filedemo, 'state=link mode=444'])['changed']
+        assert stat.S_IMODE(os.stat(tmp_target).st_mode) == 0444
 
         tmp_dir = tempfile.mkdtemp()
         filedemo = os.path.join(tmp_dir, 'link')
