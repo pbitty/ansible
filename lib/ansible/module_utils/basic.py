@@ -425,7 +425,11 @@ class AnsibleModule(object):
         except Exception, e:
             self.fail_json(path=path, msg='mode needs to be something octalish', details=str(e))
 
-        st = os.lstat(path)
+        lchmod_supported = 'lchmod' in dir(os)
+        chmod_function = os.lchmod if lchmod_supported else os.chmod
+        stat_function = os.lstat if lchmod_supported else os.stat
+
+        st = stat_function(path)
         prev_mode = stat.S_IMODE(st[stat.ST_MODE])
 
         if prev_mode != mode:
@@ -434,10 +438,7 @@ class AnsibleModule(object):
             # FIXME: comparison against string above will cause this to be executed
             # every time
             try:
-                if 'lchmod' in dir(os):
-                    os.lchmod(path, mode)
-                else:
-                    os.chmod(path, mode)
+                chmod_function(path, mode)
             except OSError, e:
                 if os.path.islink(path) and e.errno == errno.EPERM:  # Can't set mode on symbolic links
                     pass
@@ -448,7 +449,7 @@ class AnsibleModule(object):
             except Exception, e:
                 self.fail_json(path=path, msg='chmod failed', details=str(e))
 
-            st = os.lstat(path)
+            st = stat_function(path)
             new_mode = stat.S_IMODE(st[stat.ST_MODE])
 
             if new_mode != prev_mode:
